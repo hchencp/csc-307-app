@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors"; // NEW: Import the cors library
 
 const app = express();
 const port = 8000;
@@ -49,6 +50,10 @@ const findUserById = (id) =>
   users["users_list"].find((user) => user["id"] === id);
 
 const addUser = (user) => {
+  // NEW: Generate a random ID (naive implementation)
+  const id = "" + Math.floor(Math.random() * 1000000);
+  user.id = id;
+
   if (!Array.isArray(user.job)) {
     user.job = [user.job];
   }
@@ -78,6 +83,7 @@ const addJobToUser = (id, newJob) => {
 
 // --- ROUTES ---
 
+app.use(cors()); // NEW: Allow requests from other origins (like your frontend)
 app.use(express.json());
 
 app.get("/", (req, res) => {

@@ -4,9 +4,10 @@ function TableHeader() {
   return (
     <thead>
       <tr>
+        <th>ID</th> {/* NEW COLUMN */}
         <th>Name</th>
         <th>Job</th>
-        <th>Remove</th> {/* Add a third column header */}
+        <th>Remove</th>
       </tr>
     </thead>
   );
@@ -16,10 +17,10 @@ function TableBody(props) {
   const rows = props.characterData.map((row, index) => {
     return (
       <tr key={index}>
+        <td>{row.id}</td> {/* NEW DATA CELL */}
         <td>{row.name}</td>
         <td>{row.job}</td>
         <td>
-          {/* Use an arrow function so the delete doesn't run automatically */}
           <button onClick={() => props.removeCharacter(index)}>Delete</button>
         </td>
       </tr>
