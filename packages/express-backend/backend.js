@@ -1,145 +1,86 @@
 import express from "express";
-import cors from "cors"; // NEW: Import the cors library
+import cors from "cors";
+import userServices from "./services/user-service.js";
+import dotenv from "dotenv";
+import mongoose from "mongoose";
+
+dotenv.config();
 
 const app = express();
 const port = 8000;
 
-const users = {
-  users_list: [
-    {
-      id: "xyz789",
-      name: "Charlie",
-      job: ["Janitor"],
-    },
-    {
-      id: "abc123",
-      name: "Mac",
-      job: ["Bouncer"],
-    },
-    {
-      id: "ppp222",
-      name: "Mac",
-      job: ["Professor"],
-    },
-    {
-      id: "yat999",
-      name: "Dee",
-      job: ["Aspring actress"],
-    },
-    {
-      id: "zap555",
-      name: "Dennis",
-      job: ["Bartender"],
-    },
-  ],
-};
-
-// --- HELPER FUNCTIONS ---
-
-const findUserByName = (name) => {
-  return users["users_list"].filter((user) => user["name"] === name);
-};
-
-const findUserByNameAndJob = (name, job) => {
-  return users["users_list"].filter(
-    (user) => user["name"] === name && user["job"].includes(job),
-  );
-};
-
-const findUserById = (id) =>
-  users["users_list"].find((user) => user["id"] === id);
-
-const addUser = (user) => {
-  // NEW: Generate a random ID (naive implementation)
-  const id = "" + Math.floor(Math.random() * 1000000);
-  user.id = id;
-
-  if (!Array.isArray(user.job)) {
-    user.job = [user.job];
-  }
-  users["users_list"].push(user);
-  return user;
-};
-
-const deleteUser = (id) => {
-  const index = users["users_list"].findIndex((user) => user["id"] === id);
-  if (index !== -1) {
-    users["users_list"].splice(index, 1);
-    return true;
-  }
-  return false;
-};
-
-const addJobToUser = (id, newJob) => {
-  const user = findUserById(id);
-  if (user) {
-    if (!user.job.includes(newJob)) {
-      user.job.push(newJob);
-    }
-    return user;
-  }
-  return false;
-};
-
-// --- ROUTES ---
-
-app.use(cors()); // NEW: Allow requests from other origins (like your frontend)
+app.use(cors());
 app.use(express.json());
 
+// 1. Setup MongoDB Connection
+mongoose.set("debug", true);
+mongoose
+  .connect(process.env.MONGO_CONNECTION_STRING + "users") // Connect to the "users" database
+  .then(() => console.log("Connected to MongoDB Atlas"))
+  .catch((error) => console.log("Error connecting to MongoDB:", error));
+
+// 2. Updated Routes to use the Database
+
 app.get("/", (req, res) => {
-  res.send("was gud!");
+  res.send("Hello World!");
 });
 
-app.get("/users", (req, res) => {
-  const name = req.query.name;
-  const job = req.query.job;
+// GET users (with optional name/job filters)
+app.get("/users", async (req, res) => {
+  const name = req.query["name"];
+  const job = req.query["job"];
 
-  if (name != undefined && job != undefined) {
-    let result = findUserByNameAndJob(name, job);
-    result = { users_list: result };
-    res.send(result);
-  } else if (name != undefined) {
-    let result = findUserByName(name);
-    result = { users_list: result };
-    res.send(result);
-  } else {
-    res.send(users);
+  try {
+    const result = await userServices.getUsers(name, job);
+    res.send({ users_list: result });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send("An error occurred in the server.");
   }
 });
 
-app.get("/users/:id", (req, res) => {
+// GET user by ID
+app.get("/users/:id", async (req, res) => {
   const id = req.params["id"];
-  let result = findUserById(id);
-  if (result === undefined) {
-    res.status(404).send("Resource not found.");
-  } else {
-    res.send(result);
+  try {
+    const result = await userServices.findUserById(id);
+    if (result === undefined || result === null)
+      res.status(404).send("Resource not found.");
+    else {
+      res.send(result);
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).send("An error occurred in the server.");
   }
 });
 
-app.post("/users", (req, res) => {
-  const userToAdd = req.body;
-  addUser(userToAdd);
-  res.status(201).send(userToAdd);
-});
-
-app.post("/users/:id/job", (req, res) => {
-  const id = req.params["id"];
-  const newJob = req.body.job;
-
-  if (newJob && addJobToUser(id, newJob)) {
-    res.status(200).send(findUserById(id));
-  } else {
-    res.status(404).send("User not found or job missing.");
+// POST a new user
+app.post("/users", async (req, res) => {
+  const user = req.body;
+  try {
+    const savedUser = await userServices.addUser(user);
+    if (savedUser) res.status(201).send(savedUser);
+    else res.status(500).end();
+  } catch (error) {
+    console.log(error);
+    res.status(500).send("An error occurred in the server.");
   }
 });
 
-app.delete("/users/:id", (req, res) => {
+// DELETE user by ID
+app.delete("/users/:id", async (req, res) => {
   const id = req.params["id"];
-  if (deleteUser(id)) {
-    res.status(204).send();
-  } else {
-    res.status(404).send("Resource not found.");
+  try {
+    const result = await userServices.deleteUser(id);
+    if (result === undefined || result === null)
+      res.status(404).send("Resource not found.");
+    else {
+      res.status(204).end(); // 204 means "No Content" (successful deletion)
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).send("An error occurred in the server.");
   }
 });
 

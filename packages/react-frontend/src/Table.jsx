@@ -4,7 +4,7 @@ function TableHeader() {
   return (
     <thead>
       <tr>
-        <th>ID</th> {/* NEW COLUMN */}
+        <th>ID</th>
         <th>Name</th>
         <th>Job</th>
         <th>Remove</th>
@@ -17,7 +17,7 @@ function TableBody(props) {
   const rows = props.characterData.map((row, index) => {
     return (
       <tr key={index}>
-        <td>{row.id}</td> {/* NEW DATA CELL */}
+        <td>{row._id}</td> {/* <--- CHANGE THIS: Show the MongoDB _id */}
         <td>{row.name}</td>
         <td>{row.job}</td>
         <td>

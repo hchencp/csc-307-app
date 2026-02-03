@@ -24,16 +24,18 @@ function MyApp() {
   }, []);
 
   function removeOneCharacter(index) {
-    // 1. Get the character we want to delete so we can get their ID
-    const characterToDelete = characters[index];
-    const id = characterToDelete.id; // The backend needs this ID!
+    const userToDelete = characters[index];
+    const id = userToDelete._id; // <--- CHANGE THIS: use _id
 
-    // 2. Make the DELETE request
+    if (!id) {
+      console.error("ID is missing, cannot delete!");
+      return;
+    }
+
     fetch(`http://localhost:8000/users/${id}`, {
       method: "DELETE",
     })
       .then((res) => {
-        // 3. If successful (204), update the frontend
         if (res.status === 204) {
           const updated = characters.filter((character, i) => i !== index);
           setCharacters(updated);
